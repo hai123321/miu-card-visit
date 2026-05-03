@@ -42,7 +42,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s \
-  CMD wget -qO- http://localhost:3000/ >/dev/null 2>&1 || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+  CMD wget --quiet --tries=1 --timeout=5 --spider http://localhost:3000/ || exit 1
 
 CMD ["node", "server.js"]

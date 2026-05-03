@@ -25,9 +25,10 @@ jobs:
       - name: Ensure data directory exists
         run: |
           mkdir -p data
-          # Image runs as uid 1001 (nextjs); match permissions on host volume.
-          chown -R 1001:1001 data || true
-          chmod 775 data
+          # Container runs as uid 1001; runner user typically owns ./data,
+          # so make the bind mount world-writable to allow first-run JSON
+          # bootstrap and subsequent admin saves.
+          chmod 777 data
 
       - name: Build và deploy
         run: docker compose up -d --build

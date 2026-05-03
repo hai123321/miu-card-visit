@@ -50,12 +50,21 @@ export async function readProfile(): Promise<Profile> {
     const parsed = JSON.parse(raw) as Profile;
     return { ...defaultProfile, ...parsed };
   } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') {
-      await ensureDataDir();
-      await fs.writeFile(PROFILE_FILE, JSON.stringify(defaultProfile, null, 2), 'utf8');
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code !== 'ENOENT') {
+      // Don't take the page down for a corrupt or unreadable file.
+      console.warn('[profile] readProfile fallback to defaults:', err);
       return defaultProfile;
     }
-    throw err;
+    try {
+      await ensureDataDir();
+      await fs.writeFile(PROFILE_FILE, JSON.stringify(defaultProfile, null, 2), 'utf8');
+    } catch (writeErr) {
+      // Volume mount may be read-only or owned by a different uid.
+      // Serve defaults from memory so the page stays up.
+      console.warn('[profile] cannot bootstrap data file, serving in-memory defaults:', writeErr);
+    }
+    return defaultProfile;
   }
 }
 
