@@ -13,10 +13,10 @@ services:
       JWT_SECRET:           ${JWT_SECRET}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://example.com}
     volumes:
-      # Persist profile.json across deploys; data dir owned by uid 1001 in image.
+      # Persist profile.json + uploaded avatars across deploys.
+      # /app/data is the only persisted location; uploads live in
+      # /app/data/uploads and are served by the /api/uploads/[name] route.
       - ./data:/app/data
-      # Mount uploaded avatars into Next.js public/ so they're served at /uploads/*
-      - ./data/uploads:/app/public/uploads
     networks:
       - proxy-net
 

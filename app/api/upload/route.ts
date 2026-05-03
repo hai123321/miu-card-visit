@@ -15,7 +15,7 @@ const ALLOWED: Record<string, string> = {
   'image/svg+xml': 'svg',
 };
 
-const UPLOAD_DIR = path.join(process.cwd(), 'public', 'uploads');
+const UPLOAD_DIR = path.join(process.cwd(), 'data', 'uploads');
 
 export async function POST(req: Request) {
   let form: FormData;
@@ -48,5 +48,5 @@ export async function POST(req: Request) {
   const dest = path.join(UPLOAD_DIR, filename);
   await fs.writeFile(dest, buf);
 
-  return NextResponse.json({ url: `/uploads/${filename}` });
+  return NextResponse.json({ url: `/api/uploads/${filename}` });
 }

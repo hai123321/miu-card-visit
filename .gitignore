@@ -42,7 +42,6 @@ next-env.d.ts.bak
 # data (volume-mounted persistent storage)
 /data/profile.json
 /data/uploads/
-/public/uploads/
 
 # logs
 *.log
