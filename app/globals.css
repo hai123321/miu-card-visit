@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --brand: #FB2D5A;
+  --brand-fg: #FFFFFF;
+  --bg: #0F0F12;
+}
+
+html, body {
+  background: var(--bg);
+  color: #fafafa;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+@layer components {
+  .pulse-ring {
+    box-shadow: 0 0 0 0 var(--brand);
+    animation: pulse-ring 2.4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+  }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 55%, transparent); }
+  70%  { box-shadow: 0 0 0 18px color-mix(in oklab, var(--brand) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--brand) 0%, transparent); }
+}
+
+.link-tile {
+  transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 200ms ease;
+}
+.link-tile:hover { transform: translateY(-2px); }
+.link-tile:active { transform: translateY(0); }

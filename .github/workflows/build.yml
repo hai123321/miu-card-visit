@@ -1,0 +1,27 @@
+name: Build check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches-ignore: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        env:
+          JWT_SECRET: ci-build-placeholder-secret-32chars
+          ADMIN_PASSWORD: ci-build-placeholder
+        run: npm run build

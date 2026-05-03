@@ -1,0 +1,61 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, miu-server]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          clean: false   # Preserve ./data (profile.json) across deploys
+
+      - name: Create .env file
+        run: |
+          cat > .env <<EOF
+          ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_SITE_URL=${{ secrets.NEXT_PUBLIC_SITE_URL }}
+          EOF
+
+      - name: Ensure data directory exists
+        run: |
+          mkdir -p data
+          # Image runs as uid 1001 (nextjs); match permissions on host volume.
+          chown -R 1001:1001 data || true
+          chmod 775 data
+
+      - name: Build và deploy
+        run: docker compose up -d --build
+
+      - name: Chờ container healthy
+        run: |
+          echo "Waiting for web to be healthy..."
+          for i in $(seq 1 30); do
+            STATUS=$(docker inspect --format='{{.State.Health.Status}}' $(docker compose ps -q web) 2>/dev/null || echo "unknown")
+            echo "  attempt $i: $STATUS"
+            if [ "$STATUS" = "healthy" ]; then
+              echo "✅ web is healthy"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Timeout waiting for web"
+              docker compose logs web --tail=80
+              exit 1
+            fi
+            sleep 3
+          done
+
+      - name: Show logs nếu deploy thất bại
+        if: failure()
+        run: docker compose logs web --tail=100
+
+      - name: Xóa image cũ
+        run: docker image prune -f
+
+      - name: Kiểm tra trạng thái
+        run: docker compose ps
