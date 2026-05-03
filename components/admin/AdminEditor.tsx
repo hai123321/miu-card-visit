@@ -1,8 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown, LogOut, Save, Eye } from 'lucide-react';
+import {
+  Plus, Trash2, GripVertical, ArrowUp, ArrowDown,
+  LogOut, Save, Eye, Upload, Loader2,
+} from 'lucide-react';
 import type { LinkItem, Profile, SocialItem } from '@/lib/types';
 
 const PLATFORMS: SocialItem['platform'][] = [
@@ -187,12 +190,15 @@ export function AdminEditor({ initial }: { initial: Profile }) {
               className={inputCls}
             />
           </Field>
-          <Field label="Avatar URL">
-            <input
+          <Field label="Avatar">
+            <AvatarField
               value={profile.avatarUrl}
-              onChange={(e) => update('avatarUrl', e.target.value)}
-              placeholder="https://… hoặc /avatar.png"
-              className={inputCls}
+              onChange={(v) => update('avatarUrl', v)}
+              onError={(msg) => setError(msg)}
+              onSessionExpired={() => {
+                setError('Phiên đăng nhập đã hết hạn. Đang chuyển hướng…');
+                setTimeout(() => router.replace('/admin/login'), 800);
+              }}
             />
           </Field>
         </Section>
@@ -252,7 +258,7 @@ export function AdminEditor({ initial }: { initial: Profile }) {
                     value={l.title}
                     onChange={(e) => updateLink(l.id, { title: e.target.value })}
                     placeholder="Tiêu đề"
-                    className={`${inputCls} flex-1`}
+                    className={`${inputBase} flex-1 min-w-0`}
                   />
                   <div className="flex">
                     <button
@@ -322,7 +328,7 @@ export function AdminEditor({ initial }: { initial: Profile }) {
                   onChange={(e) =>
                     updateSocial(s.id, { platform: e.target.value as SocialItem['platform'] })
                   }
-                  className={`${inputCls} w-36`}
+                  className={`${inputBase} w-36 shrink-0`}
                 >
                   {PLATFORMS.map((p) => (
                     <option key={p} value={p}>
@@ -334,7 +340,7 @@ export function AdminEditor({ initial }: { initial: Profile }) {
                   value={s.url}
                   onChange={(e) => updateSocial(s.id, { url: e.target.value })}
                   placeholder="https:// hoặc mailto: / tel:"
-                  className={`${inputCls} flex-1`}
+                  className={`${inputBase} flex-1 min-w-0`}
                 />
                 <button
                   onClick={() => removeSocial(s.id)}
@@ -383,8 +389,10 @@ export function AdminEditor({ initial }: { initial: Profile }) {
   );
 }
 
-const inputCls =
-  'w-full rounded-lg bg-black/30 ring-1 ring-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--brand)] text-sm';
+const inputBase =
+  'rounded-lg bg-black/30 ring-1 ring-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--brand)] text-sm';
+
+const inputCls = `w-full ${inputBase}`;
 
 const addBtnCls =
   'inline-flex items-center gap-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 px-3 py-1.5';
@@ -418,6 +426,91 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-white/70">{label}</span>
       {children}
     </label>
+  );
+}
+
+function AvatarField({
+  value,
+  onChange,
+  onError,
+  onSessionExpired,
+}: {
+  value: string;
+  onChange: (url: string) => void;
+  onError: (msg: string) => void;
+  onSessionExpired: () => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      if (res.status === 401) {
+        onSessionExpired();
+        return;
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const msg =
+          data?.error === 'file_too_large'
+            ? 'File quá lớn (tối đa 4MB)'
+            : data?.error === 'unsupported_type'
+            ? 'Định dạng không hỗ trợ (chỉ nhận png/jpeg/webp/gif/svg)'
+            : 'Upload thất bại';
+        onError(msg);
+        return;
+      }
+      const { url } = (await res.json()) as { url: string };
+      onChange(url);
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-3">
+        <div className="h-16 w-16 rounded-full overflow-hidden ring-2 ring-white/10 bg-white/5 shrink-0">
+          {value ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={value} alt="" className="h-full w-full object-cover" />
+          ) : null}
+        </div>
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="inline-flex items-center gap-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 px-3 py-2 disabled:opacity-50"
+        >
+          {uploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="h-4 w-4" />
+          )}
+          {uploading ? 'Đang tải…' : 'Tải ảnh lên'}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+          onChange={onFileChange}
+          className="hidden"
+        />
+      </div>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="hoặc dán URL: https://… / /uploads/abc.png"
+        className={inputCls}
+      />
+    </div>
   );
 }
 

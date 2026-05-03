@@ -22,15 +22,16 @@ export async function middleware(req: NextRequest) {
   const isAdminPage = pathname.startsWith('/admin') && pathname !== '/admin/login';
   const isProfileWrite =
     pathname === '/api/profile' && (req.method === 'PUT' || req.method === 'POST');
+  const isUpload = pathname === '/api/upload' && req.method === 'POST';
 
-  if (!isAdminPage && !isProfileWrite) return NextResponse.next();
+  if (!isAdminPage && !isProfileWrite && !isUpload) return NextResponse.next();
 
   const token = req.cookies.get(COOKIE_NAME)?.value;
   const valid = await isValidSession(token);
 
   if (valid) return NextResponse.next();
 
-  if (isProfileWrite) {
+  if (isProfileWrite || isUpload) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
@@ -41,5 +42,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/api/profile'],
+  matcher: ['/admin/:path*', '/api/profile', '/api/upload'],
 };
