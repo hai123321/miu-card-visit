@@ -4,13 +4,23 @@ import './globals.css';
 
 export async function generateMetadata(): Promise<Metadata> {
   const p = await readProfile();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
   return {
+    metadataBase: new URL(siteUrl),
     title: p.meta.title,
     description: p.meta.description,
     openGraph: {
+      type: 'website',
+      url: siteUrl,
+      siteName: p.name,
       title: p.meta.title,
       description: p.meta.description,
-      images: p.coverUrl || p.avatarUrl ? [{ url: p.coverUrl || p.avatarUrl }] : [],
+      // og:image is auto-injected from app/opengraph-image.tsx
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: p.meta.title,
+      description: p.meta.description,
     },
   };
 }
