@@ -34,6 +34,17 @@ export const defaultProfile: Profile = {
     { id: 's1', platform: 'github', url: 'https://github.com/hai123321' },
     { id: 's2', platform: 'email', url: 'mailto:trieuhai02891@gmail.com' },
   ],
+  resources: {
+    title: 'Tài liệu và tool AI khác',
+    pageSize: 5,
+    items: [],
+  },
+  donate: {
+    enabled: false,
+    title: 'Tặng mình 1 ly cafe nha!',
+    subtitle: '',
+    qrUrl: '',
+  },
   meta: {
     title: 'Trieu Hai — Card visit',
     description: 'All my links in one place.',
@@ -44,11 +55,22 @@ async function ensureDataDir() {
   await fs.mkdir(DATA_DIR, { recursive: true });
 }
 
+function mergeWithDefaults(parsed: Partial<Profile>): Profile {
+  return {
+    ...defaultProfile,
+    ...parsed,
+    theme: { ...defaultProfile.theme, ...(parsed.theme ?? {}) },
+    meta: { ...defaultProfile.meta, ...(parsed.meta ?? {}) },
+    resources: { ...defaultProfile.resources, ...(parsed.resources ?? {}) },
+    donate: { ...defaultProfile.donate, ...(parsed.donate ?? {}) },
+  };
+}
+
 export async function readProfile(): Promise<Profile> {
   try {
     const raw = await fs.readFile(PROFILE_FILE, 'utf8');
-    const parsed = JSON.parse(raw) as Profile;
-    return { ...defaultProfile, ...parsed };
+    const parsed = JSON.parse(raw) as Partial<Profile>;
+    return mergeWithDefaults(parsed);
   } catch (err: unknown) {
     const code = (err as NodeJS.ErrnoException)?.code;
     if (code !== 'ENOENT') {
@@ -70,7 +92,7 @@ export async function readProfile(): Promise<Profile> {
 
 export async function writeProfile(profile: Profile): Promise<Profile> {
   await ensureDataDir();
-  const merged = { ...defaultProfile, ...profile };
+  const merged = mergeWithDefaults(profile);
   const tmp = `${PROFILE_FILE}.tmp`;
   await fs.writeFile(tmp, JSON.stringify(merged, null, 2), 'utf8');
   await fs.rename(tmp, PROFILE_FILE);

@@ -23,6 +23,26 @@ export type SocialItem = {
   label?: string;
 };
 
+export type ResourceItem = {
+  id: string;
+  title: string;
+  url: string;
+  iconUrl?: string;
+};
+
+export type ResourcesSection = {
+  title: string;
+  pageSize: number;
+  items: ResourceItem[];
+};
+
+export type DonateSection = {
+  enabled: boolean;
+  title: string;
+  subtitle: string;
+  qrUrl: string;
+};
+
 export type Profile = {
   name: string;
   handle: string;
@@ -37,6 +57,8 @@ export type Profile = {
   };
   links: LinkItem[];
   socials: SocialItem[];
+  resources: ResourcesSection;
+  donate: DonateSection;
   meta: {
     title: string;
     description: string;

@@ -1,5 +1,7 @@
 import Image from 'next/image';
 import { SocialIcon } from './SocialIcon';
+import { ResourcesList } from './ResourcesList';
+import { DonateBlock } from './DonateBlock';
 import type { Profile } from '@/lib/types';
 
 export function ProfileCard({ profile }: { profile: Profile }) {
@@ -89,6 +91,10 @@ export function ProfileCard({ profile }: { profile: Profile }) {
             </a>
           ))}
         </section>
+
+        <ResourcesList resources={profile.resources} />
+
+        <DonateBlock donate={profile.donate} />
 
         <footer className="mt-auto pt-6 text-xs text-white/40">
           <a href="/admin" className="hover:text-white/70 transition-colors">

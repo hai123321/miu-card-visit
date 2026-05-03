@@ -1,12 +1,13 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Plus, Trash2, GripVertical, ArrowUp, ArrowDown,
-  LogOut, Save, Eye, Upload, Loader2,
+  LogOut, Save, Eye,
 } from 'lucide-react';
-import type { LinkItem, Profile, SocialItem } from '@/lib/types';
+import type { LinkItem, Profile, ResourceItem, SocialItem } from '@/lib/types';
+import { ImageUpload } from './ImageUpload';
 
 const PLATFORMS: SocialItem['platform'][] = [
   'facebook', 'instagram', 'github', 'linkedin',
@@ -92,6 +93,59 @@ export function AdminEditor({ initial }: { initial: Profile }) {
   function removeSocial(id: string) {
     setProfile((p) => ({ ...p, socials: p.socials.filter((s) => s.id !== id) }));
   }
+
+  function updateResources(patch: Partial<Profile['resources']>) {
+    setProfile((p) => ({ ...p, resources: { ...p.resources, ...patch } }));
+  }
+
+  function updateResourceItem(id: string, patch: Partial<ResourceItem>) {
+    setProfile((p) => ({
+      ...p,
+      resources: {
+        ...p.resources,
+        items: p.resources.items.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+      },
+    }));
+  }
+
+  function moveResource(id: string, dir: -1 | 1) {
+    setProfile((p) => {
+      const items = p.resources.items;
+      const idx = items.findIndex((r) => r.id === id);
+      if (idx < 0) return p;
+      const next = [...items];
+      const swap = idx + dir;
+      if (swap < 0 || swap >= next.length) return p;
+      [next[idx], next[swap]] = [next[swap], next[idx]];
+      return { ...p, resources: { ...p.resources, items: next } };
+    });
+  }
+
+  function addResource() {
+    setProfile((p) => ({
+      ...p,
+      resources: {
+        ...p.resources,
+        items: [...p.resources.items, { id: uid(), title: 'Tài liệu mới', url: 'https://' }],
+      },
+    }));
+  }
+
+  function removeResource(id: string) {
+    setProfile((p) => ({
+      ...p,
+      resources: { ...p.resources, items: p.resources.items.filter((r) => r.id !== id) },
+    }));
+  }
+
+  function updateDonate(patch: Partial<Profile['donate']>) {
+    setProfile((p) => ({ ...p, donate: { ...p.donate, ...patch } }));
+  }
+
+  const sessionExpired = () => {
+    setError('Phiên đăng nhập đã hết hạn. Đang chuyển hướng…');
+    setTimeout(() => router.replace('/admin/login'), 800);
+  };
 
   async function onSave() {
     setSaving(true);
@@ -191,14 +245,13 @@ export function AdminEditor({ initial }: { initial: Profile }) {
             />
           </Field>
           <Field label="Avatar">
-            <AvatarField
+            <ImageUpload
               value={profile.avatarUrl}
               onChange={(v) => update('avatarUrl', v)}
-              onError={(msg) => setError(msg)}
-              onSessionExpired={() => {
-                setError('Phiên đăng nhập đã hết hạn. Đang chuyển hướng…');
-                setTimeout(() => router.replace('/admin/login'), 800);
-              }}
+              onError={setError}
+              onSessionExpired={sessionExpired}
+              size={64}
+              shape="circle"
             />
           </Field>
         </Section>
@@ -357,6 +410,142 @@ export function AdminEditor({ initial }: { initial: Profile }) {
           </div>
         </Section>
 
+        <Section
+          title="Tài liệu / Tool"
+          right={
+            <button onClick={addResource} className={addBtnCls}>
+              <Plus className="h-4 w-4" /> Thêm
+            </button>
+          }
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Tiêu đề section">
+              <input
+                value={profile.resources.title}
+                onChange={(e) => updateResources({ title: e.target.value })}
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Số bài / trang">
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={profile.resources.pageSize}
+                onChange={(e) =>
+                  updateResources({ pageSize: Math.max(1, Number(e.target.value) || 5) })
+                }
+                className={inputCls}
+              />
+            </Field>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {profile.resources.items.map((r, i) => (
+              <div
+                key={r.id}
+                className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3 flex flex-col gap-2"
+              >
+                <div className="flex items-center gap-2">
+                  <GripVertical className="h-4 w-4 text-white/40 shrink-0" />
+                  <input
+                    value={r.title}
+                    onChange={(e) => updateResourceItem(r.id, { title: e.target.value })}
+                    placeholder="Tiêu đề tài liệu"
+                    className={`${inputBase} flex-1 min-w-0`}
+                  />
+                  <div className="flex shrink-0">
+                    <button
+                      onClick={() => moveResource(r.id, -1)}
+                      disabled={i === 0}
+                      className={iconBtnCls}
+                      aria-label="Lên"
+                    >
+                      <ArrowUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => moveResource(r.id, 1)}
+                      disabled={i === profile.resources.items.length - 1}
+                      className={iconBtnCls}
+                      aria-label="Xuống"
+                    >
+                      <ArrowDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => removeResource(r.id)}
+                      className={`${iconBtnCls} hover:text-red-400`}
+                      aria-label="Xoá"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+                <input
+                  value={r.url}
+                  onChange={(e) => updateResourceItem(r.id, { url: e.target.value })}
+                  placeholder="https://drive.google.com/…"
+                  className={inputCls}
+                />
+                <Field label="Icon (tùy chọn)">
+                  <ImageUpload
+                    value={r.iconUrl ?? ''}
+                    onChange={(v) => updateResourceItem(r.id, { iconUrl: v })}
+                    onError={setError}
+                    onSessionExpired={sessionExpired}
+                    size={40}
+                    shape="rounded"
+                    buttonLabel="Tải icon"
+                    showUrlField={false}
+                  />
+                </Field>
+              </div>
+            ))}
+            {profile.resources.items.length === 0 ? (
+              <p className="text-sm text-white/50">Chưa có tài liệu nào.</p>
+            ) : null}
+          </div>
+        </Section>
+
+        <Section title="Donate / QR">
+          <label className="inline-flex items-center gap-2 text-sm text-white/80">
+            <input
+              type="checkbox"
+              checked={profile.donate.enabled}
+              onChange={(e) => updateDonate({ enabled: e.target.checked })}
+              className="accent-[var(--brand)]"
+            />
+            Hiển thị block donate trên trang public
+          </label>
+          <Field label="Tiêu đề">
+            <input
+              value={profile.donate.title}
+              onChange={(e) => updateDonate({ title: e.target.value })}
+              placeholder="Tặng mình 1 ly cafe nha!"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Thông tin tài khoản (hiển thị dưới tiêu đề)">
+            <textarea
+              value={profile.donate.subtitle}
+              onChange={(e) => updateDonate({ subtitle: e.target.value })}
+              rows={3}
+              placeholder={'STK: 19037123658010\nTechcombank — PHAN DONG GIANG'}
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Ảnh QR">
+            <ImageUpload
+              value={profile.donate.qrUrl}
+              onChange={(v) => updateDonate({ qrUrl: v })}
+              onError={setError}
+              onSessionExpired={sessionExpired}
+              size={120}
+              shape="rounded"
+              buttonLabel="Tải QR lên"
+            />
+          </Field>
+        </Section>
+
         <Section title="SEO / Metadata">
           <Field label="Page title">
             <input
@@ -426,91 +615,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-white/70">{label}</span>
       {children}
     </label>
-  );
-}
-
-function AvatarField({
-  value,
-  onChange,
-  onError,
-  onSessionExpired,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-  onError: (msg: string) => void;
-  onSessionExpired: () => void;
-}) {
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
-
-  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      if (res.status === 401) {
-        onSessionExpired();
-        return;
-      }
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        const msg =
-          data?.error === 'file_too_large'
-            ? 'File quá lớn (tối đa 4MB)'
-            : data?.error === 'unsupported_type'
-            ? 'Định dạng không hỗ trợ (chỉ nhận png/jpeg/webp/gif/svg)'
-            : 'Upload thất bại';
-        onError(msg);
-        return;
-      }
-      const { url } = (await res.json()) as { url: string };
-      onChange(url);
-    } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = '';
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-3">
-        <div className="h-16 w-16 rounded-full overflow-hidden ring-2 ring-white/10 bg-white/5 shrink-0">
-          {value ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={value} alt="" className="h-full w-full object-cover" />
-          ) : null}
-        </div>
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="inline-flex items-center gap-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 px-3 py-2 disabled:opacity-50"
-        >
-          {uploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Upload className="h-4 w-4" />
-          )}
-          {uploading ? 'Đang tải…' : 'Tải ảnh lên'}
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
-          onChange={onFileChange}
-          className="hidden"
-        />
-      </div>
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="hoặc dán URL: https://… / /uploads/abc.png"
-        className={inputCls}
-      />
-    </div>
   );
 }
 
