@@ -8,6 +8,12 @@ export const alt = 'Card visit';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
+function truncate(s: string, max: number): string {
+  if (!s) return '';
+  if (s.length <= max) return s;
+  return s.slice(0, max - 1).trimEnd() + '…';
+}
+
 export default async function OpengraphImage() {
   const p = await readProfile();
   const initial = (p.name?.trim()?.charAt(0) || 'H').toUpperCase();
@@ -21,21 +27,21 @@ export default async function OpengraphImage() {
           width: '100%',
           height: '100%',
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
-          padding: 80,
+          padding: '0 80px',
           color: '#fff',
           fontFamily: 'sans-serif',
-          background: `radial-gradient(circle at 30% 20%, ${main} 0%, ${bg} 60%)`,
+          background: `linear-gradient(135deg, ${main} 0%, ${bg} 70%)`,
         }}
       >
         <div
           style={{
+            display: 'flex',
+            flexShrink: 0,
             width: 240,
             height: 240,
-            borderRadius: '50%',
-            display: 'flex',
+            borderRadius: 9999,
             alignItems: 'center',
             justifyContent: 'center',
             background: `linear-gradient(135deg, ${main}, #7B2CFF)`,
@@ -43,6 +49,7 @@ export default async function OpengraphImage() {
             fontSize: 140,
             fontWeight: 800,
             color: '#fff',
+            marginRight: 64,
           }}
         >
           {initial}
@@ -51,37 +58,50 @@ export default async function OpengraphImage() {
         <div
           style={{
             display: 'flex',
-            marginTop: 40,
-            fontSize: 72,
-            fontWeight: 800,
-            letterSpacing: '-0.02em',
-            textAlign: 'center',
+            flexDirection: 'column',
+            flex: 1,
+            minWidth: 0,
           }}
         >
-          {p.name}
-        </div>
-
-        {p.handle ? (
-          <div style={{ display: 'flex', marginTop: 8, fontSize: 30, opacity: 0.7 }}>
-            {`@${p.handle}`}
-          </div>
-        ) : null}
-
-        {p.bio ? (
           <div
             style={{
               display: 'flex',
-              marginTop: 28,
-              fontSize: 34,
-              lineHeight: 1.35,
-              opacity: 0.88,
-              textAlign: 'center',
-              maxWidth: 980,
+              fontSize: 64,
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1,
             }}
           >
-            {p.bio}
+            {truncate(p.name, 28)}
           </div>
-        ) : null}
+
+          {p.handle ? (
+            <div
+              style={{
+                display: 'flex',
+                marginTop: 12,
+                fontSize: 28,
+                opacity: 0.65,
+              }}
+            >
+              {`@${p.handle}`}
+            </div>
+          ) : null}
+
+          {p.bio ? (
+            <div
+              style={{
+                display: 'flex',
+                marginTop: 28,
+                fontSize: 30,
+                lineHeight: 1.4,
+                opacity: 0.88,
+              }}
+            >
+              {truncate(p.bio, 140)}
+            </div>
+          ) : null}
+        </div>
       </div>
     ),
     { ...size },
