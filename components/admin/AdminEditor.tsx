@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import type { LinkItem, Profile, ResourceItem, SocialItem } from '@/lib/types';
 import { ImageUpload } from './ImageUpload';
+import { RichText } from './RichText';
 
 const PLATFORMS: SocialItem['platform'][] = [
   'facebook', 'instagram', 'github', 'linkedin',
@@ -524,13 +525,11 @@ export function AdminEditor({ initial }: { initial: Profile }) {
               className={inputCls}
             />
           </Field>
-          <Field label="Thông tin tài khoản (hiển thị dưới tiêu đề)">
-            <textarea
+          <Field label="Thông tin tài khoản (hỗ trợ HTML: bold, italic, underline, link)">
+            <RichText
               value={profile.donate.subtitle}
-              onChange={(e) => updateDonate({ subtitle: e.target.value })}
-              rows={3}
-              placeholder={'STK: 19037123658010\nTechcombank — PHAN DONG GIANG'}
-              className={inputCls}
+              onChange={(html) => updateDonate({ subtitle: html })}
+              placeholder="STK: 19037123658010 — Techcombank — PHAN DONG GIANG"
             />
           </Field>
           <Field label="Ảnh QR">

@@ -11,9 +11,10 @@ export function DonateBlock({ donate }: { donate: DonateSection }) {
       <header className="flex flex-col gap-2 px-1">
         <h2 className="text-base font-semibold text-white">{donate.title}</h2>
         {donate.subtitle ? (
-          <p className="text-sm leading-relaxed text-white/80 whitespace-pre-line">
-            {donate.subtitle}
-          </p>
+          <div
+            className="text-sm leading-relaxed text-white/80 whitespace-pre-line [&_a]:underline [&_a]:text-white"
+            dangerouslySetInnerHTML={{ __html: donate.subtitle }}
+          />
         ) : null}
       </header>
       <div className="grid place-items-center">
