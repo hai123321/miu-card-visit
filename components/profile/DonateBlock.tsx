@@ -6,22 +6,22 @@ export function DonateBlock({ donate }: { donate: DonateSection }) {
   return (
     <section
       aria-label={donate.title}
-      className="w-full rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 flex flex-col gap-3"
+      className="w-full rounded-2xl bg-white/5 ring-1 ring-white/10 p-5 flex flex-col gap-4"
     >
-      <header className="px-1">
-        <h2 className="text-sm font-semibold text-white/95">{donate.title}</h2>
+      <header className="flex flex-col gap-2 px-1">
+        <h2 className="text-base font-semibold text-white">{donate.title}</h2>
         {donate.subtitle ? (
-          <p className="mt-1 text-xs leading-relaxed text-white/60 whitespace-pre-line">
+          <p className="text-sm leading-relaxed text-white/80 whitespace-pre-line">
             {donate.subtitle}
           </p>
         ) : null}
       </header>
-      <div className="rounded-2xl bg-white p-4 grid place-items-center">
+      <div className="grid place-items-center">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={donate.qrUrl}
           alt={donate.title}
-          className="max-w-full h-auto"
+          className="w-full max-w-[220px] h-auto rounded-xl"
           loading="lazy"
         />
       </div>
