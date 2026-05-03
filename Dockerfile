@@ -43,6 +43,6 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
-  CMD wget --quiet --tries=1 --timeout=5 --spider http://localhost:3000/ || exit 1
+  CMD node -e "require('http').get('http://127.0.0.1:3000/', r => { process.exit(r.statusCode >= 200 && r.statusCode < 500 ? 0 : 1); }).on('error', () => process.exit(1));" || exit 1
 
 CMD ["node", "server.js"]
