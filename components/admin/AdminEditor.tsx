@@ -134,7 +134,7 @@ export function AdminEditor({ initial }: { initial: Profile }) {
       ...p,
       resources: {
         ...p.resources,
-        items: [...p.resources.items, { id: uid(), title: 'Tài liệu mới', url: 'https://' }],
+        items: [{ id: uid(), title: 'Tài liệu mới', url: 'https://' }, ...p.resources.items],
       },
     }));
   }
