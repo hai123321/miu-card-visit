@@ -71,7 +71,7 @@ Workflow [`deploy.yml`](.github/workflows/deploy.yml) chạy trên `[self-hosted
 |---|---|---|
 | `ADMIN_PASSWORD` | `your-strong-password` | Mật khẩu đăng nhập `/admin` |
 | `JWT_SECRET` | `random-32+chars` | Random ≥ 32 ký tự |
-| `NEXT_PUBLIC_SITE_URL` | `https://card.example.com` | URL công khai của trang |
+| `NEXT_PUBLIC_SITE_URL` | `https://haitrieuai.com` | URL công khai của trang |
 
 Workflow [`build.yml`](.github/workflows/build.yml) chạy `npm run build` cho mọi PR / branch khác `main` để bảo vệ chất lượng.
 
