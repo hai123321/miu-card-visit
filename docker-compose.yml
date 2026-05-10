@@ -4,14 +4,14 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://example.com}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://haitrieuai.com}
     container_name: miu-card-visit
     restart: unless-stopped
     environment:
       NODE_ENV:             production
       ADMIN_PASSWORD:       ${ADMIN_PASSWORD}
       JWT_SECRET:           ${JWT_SECRET}
-      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://example.com}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://haitrieuai.com}
     volumes:
       # Persist profile.json + uploaded avatars across deploys.
       # /app/data is the only persisted location; uploads live in
