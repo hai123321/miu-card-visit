@@ -94,33 +94,31 @@ export function ResourcesList({ resources }: { resources: ResourcesSection }) {
         ))}
       </ul>
 
-      {totalPages > 1 ? (
-        <footer className="flex items-center justify-between px-1 pt-1">
-          <span className="text-xs text-white/50">
-            Trang {safePage + 1} / {totalPages}
-          </span>
-          <div className="flex gap-1">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              aria-label="Trang trước"
-              className="h-8 w-8 grid place-items-center rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-30"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage >= totalPages - 1}
-              aria-label="Trang sau"
-              className="h-8 w-8 grid place-items-center rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-30"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </footer>
-      ) : null}
+      <footer className="flex items-center justify-between px-1 pt-1">
+        <span className="text-xs text-white/50">
+          Trang {safePage + 1} / {totalPages}
+        </span>
+        <div className="flex gap-1">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={safePage === 0}
+            aria-label="Trang trước"
+            className="h-8 w-8 grid place-items-center rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-30"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={safePage >= totalPages - 1}
+            aria-label="Trang sau"
+            className="h-8 w-8 grid place-items-center rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 disabled:opacity-30"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+        </div>
+      </footer>
     </section>
   );
 }
