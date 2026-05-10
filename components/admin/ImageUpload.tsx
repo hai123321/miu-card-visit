@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Upload, Loader2 } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Upload, Loader2, Images, X } from 'lucide-react';
 
 type Shape = 'circle' | 'square' | 'rounded';
 
@@ -10,6 +10,8 @@ const SHAPE_CLASS: Record<Shape, string> = {
   square: 'rounded-none',
   rounded: 'rounded-lg',
 };
+
+type LibraryItem = { name: string; url: string; mtime: number };
 
 export function ImageUpload({
   value,
@@ -21,6 +23,7 @@ export function ImageUpload({
   buttonLabel = 'Tải ảnh lên',
   showUrlField = true,
   urlPlaceholder = 'hoặc dán URL: https://… / /api/uploads/abc.png',
+  enableLibrary = false,
 }: {
   value: string;
   onChange: (url: string) => void;
@@ -31,9 +34,39 @@ export function ImageUpload({
   buttonLabel?: string;
   showUrlField?: boolean;
   urlPlaceholder?: string;
+  enableLibrary?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [library, setLibrary] = useState<LibraryItem[] | null>(null);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+
+  async function openPicker() {
+    setPickerOpen(true);
+    if (library !== null) return;
+    setLibraryLoading(true);
+    try {
+      const res = await fetch('/api/uploads/list');
+      if (res.status === 401) {
+        onSessionExpired();
+        return;
+      }
+      if (!res.ok) {
+        onError('Không tải được kho ảnh');
+        return;
+      }
+      const { items } = (await res.json()) as { items: LibraryItem[] };
+      setLibrary(items);
+    } finally {
+      setLibraryLoading(false);
+    }
+  }
+
+  function pick(url: string) {
+    onChange(url);
+    setPickerOpen(false);
+  }
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -64,7 +97,18 @@ export function ImageUpload({
       setUploading(false);
       if (fileRef.current) fileRef.current.value = '';
     }
+    // Invalidate cached library list so newly uploaded file appears next open.
+    setLibrary(null);
   }
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPickerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [pickerOpen]);
 
   const previewStyle = {
     height: `${size}px`,
@@ -98,6 +142,15 @@ export function ImageUpload({
           )}
           {uploading ? 'Đang tải…' : buttonLabel}
         </button>
+        {enableLibrary ? (
+          <button
+            type="button"
+            onClick={openPicker}
+            className="inline-flex items-center gap-1.5 text-sm rounded-lg bg-white/5 hover:bg-white/10 ring-1 ring-white/10 px-3 py-2"
+          >
+            <Images className="h-4 w-4" /> Chọn từ kho
+          </button>
+        ) : null}
         {value ? (
           <button
             type="button"
@@ -122,6 +175,67 @@ export function ImageUpload({
           placeholder={urlPlaceholder}
           className="w-full rounded-lg bg-black/30 ring-1 ring-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--brand)] text-sm"
         />
+      ) : null}
+
+      {pickerOpen ? (
+        <div
+          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+          onClick={() => setPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[80vh] overflow-hidden rounded-2xl bg-[#15151a] ring-1 ring-white/10 flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <header className="flex items-center gap-2 px-4 py-3 border-b border-white/10">
+              <h3 className="text-sm font-semibold">Kho ảnh đã upload</h3>
+              <button
+                type="button"
+                onClick={() => setPickerOpen(false)}
+                className="ml-auto h-8 w-8 grid place-items-center rounded-lg hover:bg-white/10"
+                aria-label="Đóng"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+            <div className="overflow-auto p-4">
+              {libraryLoading ? (
+                <div className="flex items-center gap-2 text-sm text-white/60">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Đang tải…
+                </div>
+              ) : !library || library.length === 0 ? (
+                <p className="text-sm text-white/60">Chưa có ảnh nào trong kho.</p>
+              ) : (
+                <ul className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                  {library.map((item) => {
+                    const selected = item.url === value;
+                    return (
+                      <li key={item.name}>
+                        <button
+                          type="button"
+                          onClick={() => pick(item.url)}
+                          title={item.name}
+                          className={`block w-full aspect-square overflow-hidden rounded-lg ring-1 transition ${
+                            selected
+                              ? 'ring-2 ring-[var(--brand)]'
+                              : 'ring-white/10 hover:ring-white/30'
+                          }`}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.url}
+                            alt={item.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
       ) : null}
     </div>
   );

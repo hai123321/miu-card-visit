@@ -1,28 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight, Link2 } from 'lucide-react';
 import type { ResourcesSection } from '@/lib/types';
 
+const ALL = '__all__';
+
 export function ResourcesList({ resources }: { resources: ResourcesSection }) {
-  const [page, setPage] = useState(0);
   const items = resources.items;
   const pageSize = Math.max(1, resources.pageSize || 5);
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
+
+  const seriesList = useMemo(() => {
+    const set = new Set<string>();
+    for (const item of items) {
+      const s = item.series?.trim();
+      if (s) set.add(s);
+    }
+    return Array.from(set);
+  }, [items]);
+
+  const [activeSeries, setActiveSeries] = useState<string>(ALL);
+  const [page, setPage] = useState(0);
+
+  const filtered = useMemo(() => {
+    if (activeSeries === ALL) return items;
+    return items.filter((i) => (i.series ?? '') === activeSeries);
+  }, [items, activeSeries]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const safePage = Math.min(page, totalPages - 1);
   const start = safePage * pageSize;
-  const visible = items.slice(start, start + pageSize);
+  const visible = filtered.slice(start, start + pageSize);
 
   if (items.length === 0) return null;
+
+  function selectSeries(s: string) {
+    setActiveSeries(s);
+    setPage(0);
+  }
 
   return (
     <section
       aria-label={resources.title}
       className="w-full rounded-2xl bg-white/5 ring-1 ring-white/10 p-4 flex flex-col gap-3"
     >
-      <header className="px-1">
+      <header className="px-1 flex items-center gap-2">
         <h2 className="text-sm font-semibold text-white/90">{resources.title}</h2>
       </header>
+
+      {seriesList.length > 0 ? (
+        <div role="tablist" aria-label="Series" className="flex flex-wrap gap-1.5 px-1">
+          <SeriesChip
+            label="Tất cả"
+            selected={activeSeries === ALL}
+            onClick={() => selectSeries(ALL)}
+          />
+          {seriesList.map((s) => (
+            <SeriesChip
+              key={s}
+              label={s}
+              selected={activeSeries === s}
+              onClick={() => selectSeries(s)}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <ul className="flex flex-col gap-2">
         {visible.map((item) => (
@@ -41,7 +83,12 @@ export function ResourcesList({ resources }: { resources: ResourcesSection }) {
                   <Link2 className="h-4 w-4 text-white/70" aria-hidden />
                 )}
               </span>
-              <span className="text-sm font-medium text-white/95 truncate">{item.title}</span>
+              <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                <span className="text-sm font-medium text-white/95 truncate">{item.title}</span>
+                {activeSeries === ALL && item.series ? (
+                  <span className="text-[11px] text-white/50 truncate">{item.series}</span>
+                ) : null}
+              </span>
             </a>
           </li>
         ))}
@@ -75,5 +122,31 @@ export function ResourcesList({ resources }: { resources: ResourcesSection }) {
         </footer>
       ) : null}
     </section>
+  );
+}
+
+function SeriesChip({
+  label,
+  selected,
+  onClick,
+}: {
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      onClick={onClick}
+      className={`text-xs font-medium rounded-full px-2.5 py-1 transition ${
+        selected
+          ? 'bg-[var(--brand)] text-[var(--brand-fg)]'
+          : 'bg-white/5 ring-1 ring-white/10 text-white/80 hover:bg-white/10'
+      }`}
+    >
+      {label}
+    </button>
   );
 }

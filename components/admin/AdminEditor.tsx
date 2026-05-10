@@ -6,7 +6,14 @@ import {
   Plus, Trash2, GripVertical, ArrowUp, ArrowDown,
   LogOut, Save, Eye,
 } from 'lucide-react';
-import type { LinkItem, Profile, ResourceItem, SocialItem } from '@/lib/types';
+import type {
+  DonateMethod,
+  DonatePerk,
+  LinkItem,
+  Profile,
+  ResourceItem,
+  SocialItem,
+} from '@/lib/types';
 import { ImageUpload } from './ImageUpload';
 import { RichText } from './RichText';
 
@@ -143,6 +150,102 @@ export function AdminEditor({ initial }: { initial: Profile }) {
     setProfile((p) => ({ ...p, donate: { ...p.donate, ...patch } }));
   }
 
+  function updateDonateMethod(id: string, patch: Partial<DonateMethod>) {
+    setProfile((p) => ({
+      ...p,
+      donate: {
+        ...p.donate,
+        methods: (p.donate.methods ?? []).map((m) => (m.id === id ? { ...m, ...patch } : m)),
+      },
+    }));
+  }
+
+  function moveDonateMethod(id: string, dir: -1 | 1) {
+    setProfile((p) => {
+      const list = [...(p.donate.methods ?? [])];
+      const idx = list.findIndex((m) => m.id === id);
+      if (idx < 0) return p;
+      const swap = idx + dir;
+      if (swap < 0 || swap >= list.length) return p;
+      [list[idx], list[swap]] = [list[swap], list[idx]];
+      return { ...p, donate: { ...p.donate, methods: list } };
+    });
+  }
+
+  function addDonateMethod() {
+    setProfile((p) => ({
+      ...p,
+      donate: {
+        ...p.donate,
+        methods: [
+          ...(p.donate.methods ?? []),
+          { id: uid(), label: 'Banking', accountInfo: '', qrUrl: '' },
+        ],
+      },
+    }));
+  }
+
+  function removeDonateMethod(id: string) {
+    setProfile((p) => ({
+      ...p,
+      donate: {
+        ...p.donate,
+        methods: (p.donate.methods ?? []).filter((m) => m.id !== id),
+      },
+    }));
+  }
+
+  function updateDonatePerk(id: string, patch: Partial<DonatePerk>) {
+    setProfile((p) => ({
+      ...p,
+      donate: {
+        ...p.donate,
+        perks: (p.donate.perks ?? []).map((k) => (k.id === id ? { ...k, ...patch } : k)),
+      },
+    }));
+  }
+
+  function moveDonatePerk(id: string, dir: -1 | 1) {
+    setProfile((p) => {
+      const list = [...(p.donate.perks ?? [])];
+      const idx = list.findIndex((m) => m.id === id);
+      if (idx < 0) return p;
+      const swap = idx + dir;
+      if (swap < 0 || swap >= list.length) return p;
+      [list[idx], list[swap]] = [list[swap], list[idx]];
+      return { ...p, donate: { ...p.donate, perks: list } };
+    });
+  }
+
+  function addDonatePerk() {
+    setProfile((p) => ({
+      ...p,
+      donate: {
+        ...p.donate,
+        perks: [
+          ...(p.donate.perks ?? []),
+          { id: uid(), title: 'Quà tặng mới', description: '' },
+        ],
+      },
+    }));
+  }
+
+  function removeDonatePerk(id: string) {
+    setProfile((p) => ({
+      ...p,
+      donate: { ...p.donate, perks: (p.donate.perks ?? []).filter((k) => k.id !== id) },
+    }));
+  }
+
+  const seriesSuggestions = useMemo(() => {
+    const set = new Set<string>();
+    for (const r of profile.resources.items) {
+      const s = r.series?.trim();
+      if (s) set.add(s);
+    }
+    return Array.from(set);
+  }, [profile.resources.items]);
+
   const sessionExpired = () => {
     setError('Phiên đăng nhập đã hết hạn. Đang chuyển hướng…');
     setTimeout(() => router.replace('/admin/login'), 800);
@@ -183,6 +286,11 @@ export function AdminEditor({ initial }: { initial: Profile }) {
 
   return (
     <main style={themeStyle} className="min-h-dvh bg-[#0F0F12] text-white">
+      <datalist id="series-suggestions">
+        {seriesSuggestions.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
       <header className="sticky top-0 z-10 backdrop-blur bg-black/40 ring-1 ring-white/5">
         <div className="max-w-3xl mx-auto px-5 py-3 flex items-center gap-3">
           <h1 className="text-base font-semibold">Admin · Card visit</h1>
@@ -487,18 +595,30 @@ export function AdminEditor({ initial }: { initial: Profile }) {
                   placeholder="https://drive.google.com/…"
                   className={inputCls}
                 />
-                <Field label="Icon (tùy chọn)">
-                  <ImageUpload
-                    value={r.iconUrl ?? ''}
-                    onChange={(v) => updateResourceItem(r.id, { iconUrl: v })}
-                    onError={setError}
-                    onSessionExpired={sessionExpired}
-                    size={40}
-                    shape="rounded"
-                    buttonLabel="Tải icon"
-                    showUrlField={false}
-                  />
-                </Field>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Series (gom nhóm, tùy chọn)">
+                    <input
+                      value={r.series ?? ''}
+                      onChange={(e) => updateResourceItem(r.id, { series: e.target.value })}
+                      placeholder="Ví dụ: Khoá học AI, Tools…"
+                      list="series-suggestions"
+                      className={inputCls}
+                    />
+                  </Field>
+                  <Field label="Icon (tùy chọn)">
+                    <ImageUpload
+                      value={r.iconUrl ?? ''}
+                      onChange={(v) => updateResourceItem(r.id, { iconUrl: v })}
+                      onError={setError}
+                      onSessionExpired={sessionExpired}
+                      size={40}
+                      shape="rounded"
+                      buttonLabel="Tải icon"
+                      showUrlField={false}
+                      enableLibrary
+                    />
+                  </Field>
+                </div>
               </div>
             ))}
             {profile.resources.items.length === 0 ? (
@@ -507,7 +627,7 @@ export function AdminEditor({ initial }: { initial: Profile }) {
           </div>
         </Section>
 
-        <Section title="Donate / QR">
+        <Section title="Donate">
           <label className="inline-flex items-center gap-2 text-sm text-white/80">
             <input
               type="checkbox"
@@ -525,24 +645,155 @@ export function AdminEditor({ initial }: { initial: Profile }) {
               className={inputCls}
             />
           </Field>
-          <Field label="Thông tin tài khoản (hỗ trợ HTML: bold, italic, underline, link)">
+          <Field label="Mô tả ngắn (intro, hỗ trợ HTML)">
             <RichText
               value={profile.donate.subtitle}
               onChange={(html) => updateDonate({ subtitle: html })}
-              placeholder="STK: 19037123658010 — Techcombank — PHAN DONG GIANG"
+              placeholder="Vài dòng giải thích vì sao có block này…"
             />
           </Field>
-          <Field label="Ảnh QR">
-            <ImageUpload
-              value={profile.donate.qrUrl}
-              onChange={(v) => updateDonate({ qrUrl: v })}
-              onError={setError}
-              onSessionExpired={sessionExpired}
-              size={120}
-              shape="rounded"
-              buttonLabel="Tải QR lên"
-            />
-          </Field>
+
+          <div className="rounded-xl ring-1 ring-white/10 p-4 flex flex-col gap-3">
+            <div className="flex items-center">
+              <h3 className="text-sm font-semibold text-white/80">Quyền lợi cho người donate</h3>
+              <button onClick={addDonatePerk} className={`${addBtnCls} ml-auto`}>
+                <Plus className="h-4 w-4" /> Thêm quyền lợi
+              </button>
+            </div>
+            <p className="text-xs text-white/50">
+              Liệt kê rõ với 1 ly cafe người ủng hộ nhận lại được gì.
+            </p>
+            <div className="flex flex-col gap-2">
+              {(profile.donate.perks ?? []).map((perk, i) => (
+                <div
+                  key={perk.id}
+                  className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3 flex flex-col gap-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-4 w-4 text-white/40 shrink-0" />
+                    <input
+                      value={perk.title}
+                      onChange={(e) => updateDonatePerk(perk.id, { title: e.target.value })}
+                      placeholder="Tiêu đề quyền lợi"
+                      className={`${inputBase} flex-1 min-w-0`}
+                    />
+                    <div className="flex shrink-0">
+                      <button
+                        onClick={() => moveDonatePerk(perk.id, -1)}
+                        disabled={i === 0}
+                        className={iconBtnCls}
+                        aria-label="Lên"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => moveDonatePerk(perk.id, 1)}
+                        disabled={i === (profile.donate.perks ?? []).length - 1}
+                        className={iconBtnCls}
+                        aria-label="Xuống"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => removeDonatePerk(perk.id)}
+                        className={`${iconBtnCls} hover:text-red-400`}
+                        aria-label="Xoá"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <textarea
+                    value={perk.description}
+                    onChange={(e) => updateDonatePerk(perk.id, { description: e.target.value })}
+                    placeholder="Mô tả ngắn (vd: 1 series khoá học người thật việc thật do mình tự làm)"
+                    rows={2}
+                    className={inputCls}
+                  />
+                </div>
+              ))}
+              {(profile.donate.perks ?? []).length === 0 ? (
+                <p className="text-sm text-white/50">Chưa có quyền lợi nào.</p>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="rounded-xl ring-1 ring-white/10 p-4 flex flex-col gap-3">
+            <div className="flex items-center">
+              <h3 className="text-sm font-semibold text-white/80">Phương thức donate</h3>
+              <button onClick={addDonateMethod} className={`${addBtnCls} ml-auto`}>
+                <Plus className="h-4 w-4" /> Thêm kênh
+              </button>
+            </div>
+            <p className="text-xs text-white/50">
+              Mỗi kênh có 1 nhãn (PayPal, MoMo, ZaloPay, Banking…), thông tin tài khoản và ảnh QR riêng.
+            </p>
+            <div className="flex flex-col gap-3">
+              {(profile.donate.methods ?? []).map((method, i) => (
+                <div
+                  key={method.id}
+                  className="rounded-xl bg-white/5 ring-1 ring-white/10 p-3 flex flex-col gap-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-4 w-4 text-white/40 shrink-0" />
+                    <input
+                      value={method.label}
+                      onChange={(e) => updateDonateMethod(method.id, { label: e.target.value })}
+                      placeholder="Nhãn (PayPal, MoMo, ZaloPay…)"
+                      className={`${inputBase} flex-1 min-w-0`}
+                    />
+                    <div className="flex shrink-0">
+                      <button
+                        onClick={() => moveDonateMethod(method.id, -1)}
+                        disabled={i === 0}
+                        className={iconBtnCls}
+                        aria-label="Lên"
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => moveDonateMethod(method.id, 1)}
+                        disabled={i === (profile.donate.methods ?? []).length - 1}
+                        className={iconBtnCls}
+                        aria-label="Xuống"
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => removeDonateMethod(method.id)}
+                        className={`${iconBtnCls} hover:text-red-400`}
+                        aria-label="Xoá"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <Field label="Thông tin tài khoản (hỗ trợ HTML)">
+                    <RichText
+                      value={method.accountInfo}
+                      onChange={(html) => updateDonateMethod(method.id, { accountInfo: html })}
+                      placeholder="STK / số điện thoại / email PayPal…"
+                    />
+                  </Field>
+                  <Field label="Ảnh QR">
+                    <ImageUpload
+                      value={method.qrUrl}
+                      onChange={(v) => updateDonateMethod(method.id, { qrUrl: v })}
+                      onError={setError}
+                      onSessionExpired={sessionExpired}
+                      size={120}
+                      shape="rounded"
+                      buttonLabel="Tải QR lên"
+                      enableLibrary
+                    />
+                  </Field>
+                </div>
+              ))}
+              {(profile.donate.methods ?? []).length === 0 ? (
+                <p className="text-sm text-white/50">Chưa có phương thức nào.</p>
+              ) : null}
+            </div>
+          </div>
         </Section>
 
         <Section title="SEO / Metadata">

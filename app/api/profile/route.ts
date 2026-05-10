@@ -22,8 +22,20 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
-  if (body.donate && typeof body.donate.subtitle === 'string') {
-    body.donate = { ...body.donate, subtitle: sanitizeRichHtml(body.donate.subtitle) };
+  if (body.donate) {
+    const donate = body.donate;
+    body.donate = {
+      ...donate,
+      subtitle: typeof donate.subtitle === 'string' ? sanitizeRichHtml(donate.subtitle) : '',
+      methods: Array.isArray(donate.methods)
+        ? donate.methods.map((m) => ({
+            ...m,
+            accountInfo:
+              typeof m.accountInfo === 'string' ? sanitizeRichHtml(m.accountInfo) : '',
+          }))
+        : [],
+      perks: Array.isArray(donate.perks) ? donate.perks : [],
+    };
   }
 
   const saved = await writeProfile(body);

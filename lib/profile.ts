@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import type { Profile } from './types';
+import type { DonateSection, Profile } from './types';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 const PROFILE_FILE = path.join(DATA_DIR, 'profile.json');
@@ -43,6 +43,8 @@ export const defaultProfile: Profile = {
     enabled: false,
     title: 'Tặng mình 1 ly cafe nha!',
     subtitle: '',
+    methods: [],
+    perks: [],
     qrUrl: '',
   },
   meta: {
@@ -55,6 +57,32 @@ async function ensureDataDir() {
   await fs.mkdir(DATA_DIR, { recursive: true });
 }
 
+function mergeDonate(parsed: Partial<DonateSection> | undefined): DonateSection {
+  const base: DonateSection = { ...defaultProfile.donate, ...(parsed ?? {}) };
+  const methods = Array.isArray(base.methods) ? base.methods : [];
+  const perks = Array.isArray(base.perks) ? base.perks : [];
+
+  // Migrate legacy single-QR shape into one method on first read.
+  if (methods.length === 0 && (base.qrUrl || base.subtitle)) {
+    return {
+      ...base,
+      methods: [
+        {
+          id: 'm_legacy',
+          label: 'QR',
+          accountInfo: base.subtitle ?? '',
+          qrUrl: base.qrUrl ?? '',
+        },
+      ],
+      perks,
+      subtitle: '',
+      qrUrl: '',
+    };
+  }
+
+  return { ...base, methods, perks };
+}
+
 function mergeWithDefaults(parsed: Partial<Profile>): Profile {
   return {
     ...defaultProfile,
@@ -62,7 +90,7 @@ function mergeWithDefaults(parsed: Partial<Profile>): Profile {
     theme: { ...defaultProfile.theme, ...(parsed.theme ?? {}) },
     meta: { ...defaultProfile.meta, ...(parsed.meta ?? {}) },
     resources: { ...defaultProfile.resources, ...(parsed.resources ?? {}) },
-    donate: { ...defaultProfile.donate, ...(parsed.donate ?? {}) },
+    donate: mergeDonate(parsed.donate),
   };
 }
 

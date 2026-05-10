@@ -28,6 +28,7 @@ export type ResourceItem = {
   title: string;
   url: string;
   iconUrl?: string;
+  series?: string;
 };
 
 export type ResourcesSection = {
@@ -36,11 +37,26 @@ export type ResourcesSection = {
   items: ResourceItem[];
 };
 
+export type DonateMethod = {
+  id: string;
+  label: string;
+  accountInfo: string;
+  qrUrl: string;
+};
+
+export type DonatePerk = {
+  id: string;
+  title: string;
+  description: string;
+};
+
 export type DonateSection = {
   enabled: boolean;
   title: string;
   subtitle: string;
-  qrUrl: string;
+  methods: DonateMethod[];
+  perks: DonatePerk[];
+  qrUrl?: string;
 };
 
 export type Profile = {
