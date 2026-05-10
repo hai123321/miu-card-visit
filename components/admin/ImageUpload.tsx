@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Upload, Loader2, Images, X } from 'lucide-react';
+import { MediaCrop, type CropResult } from './MediaCrop';
+
+const CROPPABLE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 type Shape = 'circle' | 'square' | 'rounded';
 
@@ -24,6 +27,7 @@ export function ImageUpload({
   showUrlField = true,
   urlPlaceholder = 'hoặc dán URL: https://… / /api/uploads/abc.png',
   enableLibrary = false,
+  enableCrop = true,
 }: {
   value: string;
   onChange: (url: string) => void;
@@ -35,12 +39,14 @@ export function ImageUpload({
   showUrlField?: boolean;
   urlPlaceholder?: string;
   enableLibrary?: boolean;
+  enableCrop?: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [library, setLibrary] = useState<LibraryItem[] | null>(null);
   const [libraryLoading, setLibraryLoading] = useState(false);
+  const [cropFile, setCropFile] = useState<File | null>(null);
 
   async function openPicker() {
     setPickerOpen(true);
@@ -68,13 +74,11 @@ export function ImageUpload({
     setPickerOpen(false);
   }
 
-  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  async function uploadBlob(blob: Blob, filename: string) {
     setUploading(true);
     try {
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', blob, filename);
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       if (res.status === 401) {
         onSessionExpired();
@@ -93,12 +97,28 @@ export function ImageUpload({
       }
       const { url } = (await res.json()) as { url: string };
       onChange(url);
+      setLibrary(null);
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = '';
     }
-    // Invalidate cached library list so newly uploaded file appears next open.
-    setLibrary(null);
+  }
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (fileRef.current) fileRef.current.value = '';
+    if (!file) return;
+
+    if (enableCrop && CROPPABLE_TYPES.has(file.type)) {
+      setCropFile(file);
+      return;
+    }
+    await uploadBlob(file, file.name);
+  }
+
+  async function handleCropConfirm({ blob, mime }: CropResult) {
+    setCropFile(null);
+    const ext = mime === 'image/png' ? 'png' : 'jpg';
+    await uploadBlob(blob, `crop.${ext}`);
   }
 
   useEffect(() => {
@@ -174,6 +194,15 @@ export function ImageUpload({
           onChange={(e) => onChange(e.target.value)}
           placeholder={urlPlaceholder}
           className="w-full rounded-lg bg-black/30 ring-1 ring-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-[var(--brand)] text-sm"
+        />
+      ) : null}
+
+      {cropFile ? (
+        <MediaCrop
+          file={cropFile}
+          shape={shape}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropFile(null)}
         />
       ) : null}
 
